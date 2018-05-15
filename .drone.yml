@@ -1,0 +1,22 @@
+workspace:
+  base: /kernel
+  path: /linux-smaug
+pipeline:
+  build:
+    image: dvitali/pixelc-build-container:3
+    commands:
+      - if [ ! -d "linux" ]; then git clone -b $(cat BRANCH) --depth 1 https://github.com/pixelc-linux/linux linux; fi
+      - if [ ! -d "pixelc-kernel-scripts" ]; then git clone https://github.com/pixelc-linux/pixelc-kernel-scripts.git; fi
+      - if [ ! -d "pixelc-mkinitramfs.sh" ]; then git clone https://github.com/pixelc-linux/pixelc-mkinitramfs.sh.git; fi
+      - cd pixelc-kernel-scripts
+      - KERNEL_CROSS_PREFIX=$CROSS_COMPILE
+      - ./defconfig.sh ../linux
+      - ./build.sh ../linux
+      - ./make_zimage.sh
+  github_release:
+    image: plugins/github-release
+    secrets: [ github_token ]
+    files: [ /kernel/linux-smaug/pixelc-kernel-scripts/output/Image.fit,
+    /kernel/linux-smaug/pixelc-kernel-scripts/Image.lz4  ]
+    when:
+      event: tag
